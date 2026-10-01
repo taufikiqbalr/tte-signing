@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tte}
+      POSTGRES_USER: ${DB_USER:-tte}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change-this-db-password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tte} -d ${DB_NAME:-tte}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  tte-signing:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/tte}
+      DB_USER: ${DB_USER:-tte}
+      DB_PASSWORD: ${DB_PASSWORD:-change-this-db-password}
+      PKI_BASE_DIR: ${PKI_BASE_DIR:-/app/data/pki}
+    ports:
+      - "8080:8080"
+    volumes:
+      - pki-data:/app/data/pki
+
+volumes:
+  postgres-data:
+  pki-data:
