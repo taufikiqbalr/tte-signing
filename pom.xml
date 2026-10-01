@@ -82,6 +82,13 @@
             <version>${bouncycastle.version}</version>
         </dependency>
 
+        <!-- DSS deliberately separates its utility API from the concrete implementation.
+             Exactly one implementation must be present at runtime. -->
+        <dependency>
+            <groupId>eu.europa.ec.joinup.sd-dss</groupId>
+            <artifactId>dss-utils-apache-commons</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>eu.europa.ec.joinup.sd-dss</groupId>
             <artifactId>dss-pades-pdfbox</artifactId>
