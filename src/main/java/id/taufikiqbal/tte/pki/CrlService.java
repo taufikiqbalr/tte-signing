@@ -10,6 +10,7 @@ import org.bouncycastle.asn1.x509.CRLNumber;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509v2CRLBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -41,8 +42,7 @@ public class CrlService {
             Instant now = Instant.now();
 
             X509v2CRLBuilder builder = new X509v2CRLBuilder(
-                    new X500Name(
-                            issuer.certificate().getSubjectX500Principal().getName()),
+                    new JcaX509CertificateHolder(issuer.certificate()).getSubject(),
                     Date.from(now));
             builder.setNextUpdate(
                     Date.from(now.plus(
