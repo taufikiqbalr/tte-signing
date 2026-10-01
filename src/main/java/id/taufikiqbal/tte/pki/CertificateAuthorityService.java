@@ -37,6 +37,8 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import id.taufikiqbal.tte.config.PkiProperties;
@@ -44,6 +46,9 @@ import id.taufikiqbal.tte.pki.PkiMaterialStore.KeyMaterial;
 
 @Service
 public class CertificateAuthorityService {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(CertificateAuthorityService.class);
 
     public static final String DOCUMENT_SIGNING_EKU_OID = "1.3.6.1.5.5.7.3.36";
 
@@ -210,6 +215,10 @@ public class CertificateAuthorityService {
                     "PKCS#12 password must be at least 12 characters");
         }
 
+        log.info(
+                "Document signer certificate issuance started validityDays={}",
+                validityDays);
+
         try {
             KeyMaterial issuer = materialStore.load(PkiMaterialStore.Kind.ISSUING);
             KeyPair keyPair = generateKeyPair();
@@ -264,10 +273,26 @@ public class CertificateAuthorityService {
                     },
                     pkcs12Password);
 
+            log.info(
+                    "Document signer certificate issued serial={} notAfter={} pkcs12Bytes={} chainSize={}",
+                    certificate.getSerialNumber().toString(16).toUpperCase(),
+                    certificate.getNotAfter().toInstant(),
+                    pkcs12.length,
+                    3);
             return new IssuedCertificate(certificate, pkcs12);
         } catch (IllegalArgumentException e) {
+            log.warn(
+                    "Document signer certificate issuance rejected reason={}",
+                    e.getMessage(),
+                    e);
             throw e;
         } catch (Exception e) {
+            log.error(
+                    "Document signer certificate issuance failed validityDays={} exceptionType={} message={}",
+                    validityDays,
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    e);
             throw new IllegalStateException("Unable to issue document signing certificate", e);
         }
     }
@@ -373,7 +398,12 @@ public class CertificateAuthorityService {
         keyStore.setKeyEntry("signing-key", keyPair.getPrivate(), password, chain);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         keyStore.store(out, password);
-        return out.toByteArray();
+        byte[] encoded = out.toByteArray();
+        log.debug(
+                "PKCS12 signer bundle created alias=signing-key chainSize={} bytes={}",
+                chain == null ? 0 : chain.length,
+                encoded.length);
+        return encoded;
     }
 
     private BigInteger randomSerial() {
