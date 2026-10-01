@@ -1,0 +1,16 @@
+target/
+.idea/
+.vscode/
+*.iml
+.env
+data/
+*.p12
+*.pfx
+*.jks
+*.key
+*.pem
+*.cer
+*.crt
+*.crl
+*.pdf
+.DS_Store
