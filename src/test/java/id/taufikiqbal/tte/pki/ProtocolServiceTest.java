@@ -80,6 +80,7 @@ class ProtocolServiceTest {
                 new X509Certificate[] {issuer, root});
 
         KeyMaterial issuerMaterial = store.load(Kind.ISSUING);
+        X509Certificate publishedIssuer = issuerMaterial.certificate();
 
         KeyPair ocspKeys = ca.generateKeyPair();
         X509Certificate ocspCert =
@@ -118,7 +119,7 @@ class ProtocolServiceTest {
         when(repository.findBySerial(any(BigInteger.class)))
                 .thenReturn(Optional.of(active));
 
-        verifyOcsp(repository, store, properties, issuer, ocspCert, signer);
+        verifyOcsp(repository, store, properties, publishedIssuer, ocspCert, signer);
         verifyTsa(repository, store, properties, tsaCert);
     }
 
