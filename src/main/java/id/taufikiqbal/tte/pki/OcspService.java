@@ -44,13 +44,17 @@ public class OcspService {
     }
 
     public byte[] respond(byte[] requestBytes) {
+        final OCSPReq request;
         try {
-            OCSPReq request = new OCSPReq(requestBytes);
+            request = new OCSPReq(requestBytes);
+        } catch (Exception malformed) {
+            return statusOnly(OCSPRespBuilder.MALFORMED_REQUEST);
+        }
+
+        try {
             Req[] requests = request.getRequestList();
             if (requests.length == 0) {
-                return new OCSPRespBuilder()
-                        .build(OCSPRespBuilder.MALFORMED_REQUEST, null)
-                        .getEncoded();
+                return statusOnly(OCSPRespBuilder.MALFORMED_REQUEST);
             }
 
             KeyMaterial issuer = materialStore.load(Kind.ISSUING);
@@ -126,14 +130,18 @@ public class OcspService {
                     .build(OCSPRespBuilder.SUCCESSFUL, basicResponse)
                     .getEncoded();
         } catch (Exception e) {
-            try {
-                return new OCSPRespBuilder()
-                        .build(OCSPRespBuilder.INTERNAL_ERROR, null)
-                        .getEncoded();
-            } catch (Exception nested) {
-                throw new IllegalStateException(
-                        "Unable to build OCSP error response", nested);
-            }
+            return statusOnly(OCSPRespBuilder.INTERNAL_ERROR);
+        }
+    }
+
+    private static byte[] statusOnly(int status) {
+        try {
+            return new OCSPRespBuilder()
+                    .build(status, null)
+                    .getEncoded();
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Unable to encode OCSP response", e);
         }
     }
 }
