@@ -77,7 +77,7 @@ public class PadesSigningService {
 
             log.info(
                     "PKCS#12 loaded successfully certificateChainSize={}",
-                    key.getCertificateChain().size());
+                    key.getCertificateChain().length);
 
             PAdESSignatureParameters parameters =
                     new PAdESSignatureParameters();
