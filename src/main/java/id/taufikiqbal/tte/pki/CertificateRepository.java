@@ -62,6 +62,25 @@ public class CertificateRepository {
         }
     }
 
+    public void saveIfAbsent(X509Certificate certificate) {
+        try {
+            jdbcTemplate.update("""
+                    INSERT INTO issued_certificate
+                        (serial_hex, subject_dn, certificate_der, not_before, not_after, status)
+                    VALUES (?, ?, ?, ?, ?, 'GOOD')
+                    ON CONFLICT (serial_hex) DO NOTHING
+                    """,
+                    certificate.getSerialNumber().toString(16).toUpperCase(),
+                    certificate.getSubjectX500Principal().getName(),
+                    certificate.getEncoded(),
+                    Timestamp.from(certificate.getNotBefore().toInstant()),
+                    Timestamp.from(certificate.getNotAfter().toInstant()));
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Unable to register PKI service certificate", e);
+        }
+    }
+
     public Optional<CertificateRecord> findBySerial(BigInteger serial) {
         List<CertificateRecord> records = jdbcTemplate.query("""
                         SELECT serial_hex, subject_dn, certificate_der, not_before, not_after,
