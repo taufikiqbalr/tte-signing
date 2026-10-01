@@ -84,7 +84,8 @@ Development bootstrap akan membuat Root CA, Issuing CA, delegated OCSP responder
 ### 2. Issue document-signing certificate + PKCS#12
 
 ~~~bash
-curl -u admin:change-this-admin-password \
+curl --fail --show-error \
+  -u admin:change-this-admin-password \
   -H "Content-Type: application/json" \
   -d '{
     "commonName":"Taufik Iqbal Ramdhani",
@@ -101,11 +102,18 @@ curl -u admin:change-this-admin-password \
 
 Serial certificate terdapat pada response header `X-Certificate-Serial`.
 
-Inspect PKCS#12:
+Inspect PKCS#12 **before signing**:
 
 ~~~bash
+ls -lh signer.p12
+file signer.p12
+xxd -l 16 signer.p12
 openssl pkcs12 -in signer.p12 -info -noout
 ~~~
+
+A valid DER-encoded PKCS#12 normally starts with ASN.1 SEQUENCE byte `30`. If `xxd` shows `7b` / `{`, the file is JSON rather than PKCS#12. This usually means an HTTP error response was accidentally saved as `signer.p12`.
+
+Do not continue to signing until `openssl pkcs12` can parse the file successfully.
 
 ### 3. Sign PDF menjadi PAdES B-T
 
@@ -270,3 +278,43 @@ docker compose build --no-cache tte-signing
 docker compose up -d
 docker compose logs -f --tail=200 tte-signing
 ~~~
+
+
+### Invalid PKCS#12 / `tag type 123`
+
+If Docker logs show:
+
+~~~text
+Unable to instantiate KeyStoreSignatureTokenConnection
+Caused by: java.io.IOException: toDerInputStream rejects tag type 123
+~~~
+
+the uploaded file is not valid DER PKCS#12. Decimal tag 123 is ASCII `{`, which strongly indicates a JSON response was saved with a `.p12` filename.
+
+Remove the bad file and issue a fresh certificate:
+
+~~~bash
+rm -f signer.p12
+
+curl --fail --show-error \
+  -u admin:change-this-admin-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "commonName":"Test Signer",
+    "organization":"Example Organization",
+    "organizationalUnit":"Digital Signature",
+    "country":"ID",
+    "email":"signer@example.org",
+    "validityDays":365,
+    "pkcs12Password":"a-strong-p12-password"
+  }' \
+  http://localhost:8088/api/v1/certificates/issue \
+  -o signer.p12
+
+openssl pkcs12 \
+  -in signer.p12 \
+  -passin pass:a-strong-p12-password \
+  -info -noout
+~~~
+
+The signing endpoint now pre-validates uploaded PKCS#12/PFX input. JSON/text payloads, malformed PFX files, PFX files without a private-key entry, and password/open failures are returned as HTTP 400 instead of a generic HTTP 500.
