@@ -45,3 +45,10 @@ pki:
   crl-validity-hours: ${PKI_CRL_VALIDITY_HOURS:24}
   tsa-policy-oid: ${TSA_POLICY_OID:1.3.6.1.4.1.55555.1.1}
   tsa-accuracy-seconds: ${TSA_ACCURACY_SECONDS:1}
+
+
+logging:
+  level:
+    id.taufikiqbal.tte: INFO
+  pattern:
+    level: "%5p [requestId:%X{requestId}]"
