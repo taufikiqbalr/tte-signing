@@ -48,9 +48,18 @@ public class PkiPublicController {
     }
 
     @GetMapping(
+            value = "/pki/crl/root-ca.crl",
+            produces = "application/pkix-crl")
+    public ResponseEntity<byte[]> rootCrl() {
+        return ResponseEntity.ok()
+                .contentType(PKIX_CRL)
+                .body(crlService.currentRootCaCrl());
+    }
+
+    @GetMapping(
             value = "/pki/crl/issuing-ca.crl",
             produces = "application/pkix-crl")
-    public ResponseEntity<byte[]> crl() {
+    public ResponseEntity<byte[]> issuingCrl() {
         return ResponseEntity.ok()
                 .contentType(PKIX_CRL)
                 .body(crlService.currentIssuingCaCrl());
