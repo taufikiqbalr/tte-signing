@@ -318,3 +318,29 @@ openssl pkcs12 \
 ~~~
 
 The signing endpoint now pre-validates uploaded PKCS#12/PFX input. JSON/text payloads, malformed PFX files, PFX files without a private-key entry, and password/open failures are returned as HTTP 400 instead of a generic HTTP 500.
+
+
+### Flyway / `issued_certificate` does not exist
+
+If issuance fails with:
+
+~~~text
+ERROR: relation "issued_certificate" does not exist
+~~~
+
+the database migration did not run. Spring Boot 4 requires the dedicated `spring-boot-starter-flyway` module for Flyway auto-configuration. The project already includes that starter and performs a startup schema verification for:
+
+- `public.issued_certificate`
+- `public.tsa_serial_seq`
+
+After pulling the latest version, rebuild the application image:
+
+~~~bash
+git pull
+docker compose down
+docker compose build --no-cache tte-signing
+docker compose up -d
+docker compose logs -f --tail=200 tte-signing
+~~~
+
+You do not normally need to delete the PostgreSQL volume. On startup, Flyway will create the missing schema objects in the existing `tte` database. The application now fails fast during startup if the expected schema is still missing.
