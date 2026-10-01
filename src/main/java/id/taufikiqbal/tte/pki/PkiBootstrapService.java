@@ -5,6 +5,8 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
 import org.springframework.boot.ApplicationArguments;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
@@ -15,17 +17,23 @@ import id.taufikiqbal.tte.pki.PkiMaterialStore.Kind;
 @Component
 public class PkiBootstrapService implements ApplicationRunner {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(PkiBootstrapService.class);
+
     private final PkiProperties properties;
     private final PkiMaterialStore materialStore;
     private final CertificateAuthorityService certificateAuthorityService;
+    private final CertificateRepository certificateRepository;
 
     public PkiBootstrapService(
             PkiProperties properties,
             PkiMaterialStore materialStore,
-            CertificateAuthorityService certificateAuthorityService) {
+            CertificateAuthorityService certificateAuthorityService,
+            CertificateRepository certificateRepository) {
         this.properties = properties;
         this.materialStore = materialStore;
         this.certificateAuthorityService = certificateAuthorityService;
+        this.certificateRepository = certificateRepository;
     }
 
     @Override
@@ -34,6 +42,7 @@ public class PkiBootstrapService implements ApplicationRunner {
             return;
         }
         if (materialStore.existsAll()) {
+            synchronizeServiceCertificates();
             return;
         }
 
@@ -88,6 +97,23 @@ public class PkiBootstrapService implements ApplicationRunner {
                 new X509Certificate[] {
                         tsaCertificate, issuerCertificate, rootCertificate
                 });
+
+        synchronizeServiceCertificates();
+    }
+
+    private void synchronizeServiceCertificates() {
+        X509Certificate ocspCertificate =
+                materialStore.load(Kind.OCSP).certificate();
+        X509Certificate tsaCertificate =
+                materialStore.load(Kind.TSA).certificate();
+
+        certificateRepository.saveIfAbsent(ocspCertificate);
+        certificateRepository.saveIfAbsent(tsaCertificate);
+
+        log.info(
+                "PKI service certificates synchronized ocspSerial={} tsaSerial={}",
+                ocspCertificate.getSerialNumber().toString(16).toUpperCase(),
+                tsaCertificate.getSerialNumber().toString(16).toUpperCase());
     }
 
     private void requireBootstrapConfiguration() {
