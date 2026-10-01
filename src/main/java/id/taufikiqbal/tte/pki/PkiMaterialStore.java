@@ -11,12 +11,17 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import id.taufikiqbal.tte.config.PkiProperties;
 
 @Component
 public class PkiMaterialStore {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(PkiMaterialStore.class);
 
     public enum Kind {
         ROOT("root-ca.p12", "root-ca"),
@@ -71,8 +76,20 @@ public class PkiMaterialStore {
                     .map(X509Certificate.class::cast)
                     .toList();
 
+            log.debug(
+                    "PKI material loaded kind={} serial={} chainSize={}",
+                    kind,
+                    certificate.getSerialNumber().toString(16).toUpperCase(),
+                    chain.size());
             return new KeyMaterial(privateKey, certificate, chain);
         } catch (Exception e) {
+            log.error(
+                    "PKCS12 PKI material load failed kind={} path={} exceptionType={} message={}",
+                    kind,
+                    path(kind),
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    e);
             throw new IllegalStateException("Unable to load PKI material: " + kind, e);
         }
     }
@@ -90,7 +107,19 @@ public class PkiMaterialStore {
             try (OutputStream out = Files.newOutputStream(path(kind))) {
                 keyStore.store(out, password);
             }
+            log.info(
+                    "PKCS12 PKI material persisted kind={} path={} chainSize={}",
+                    kind,
+                    path(kind),
+                    chain == null ? 0 : chain.length);
         } catch (Exception e) {
+            log.error(
+                    "PKCS12 PKI material persistence failed kind={} path={} exceptionType={} message={}",
+                    kind,
+                    path(kind),
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    e);
             throw new IllegalStateException("Unable to persist PKI material: " + kind, e);
         }
     }
