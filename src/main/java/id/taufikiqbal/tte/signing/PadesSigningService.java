@@ -67,6 +67,8 @@ public class PadesSigningService {
                 level, pdf == null ? 0 : pdf.length,
                 pkcs12 == null ? 0 : pkcs12.length);
 
+        Pkcs12InputValidator.validate(pkcs12, password);
+
         try (Pkcs12SignatureToken token = new Pkcs12SignatureToken(
                 pkcs12, new PasswordProtection(password))) {
 
