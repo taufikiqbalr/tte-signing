@@ -152,6 +152,14 @@ class ProtocolServiceTest {
         requestBuilder.setRequestExtensions(extensions.generate());
 
         OCSPReq request = requestBuilder.build();
+
+        X509Certificate responderIssuer =
+                store.load(Kind.ISSUING).certificate();
+        assertArrayEquals(issuer.getEncoded(), responderIssuer.getEncoded());
+        assertTrue(certId.matchesIssuer(
+                new JcaX509CertificateHolder(responderIssuer),
+                calculators));
+
         OcspService service = new OcspService(
                 properties, store, repository);
         OCSPResp response = new OCSPResp(
