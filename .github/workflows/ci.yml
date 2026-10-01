@@ -22,3 +22,8 @@ jobs:
 
       - name: Compile and test
         run: mvn -B verify
+
+      - name: Validate Docker Compose
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
