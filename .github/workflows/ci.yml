@@ -99,3 +99,51 @@ jobs:
           fi
 
           test -s /tmp/ci-validation.xml
+
+          if ! curl --fail --show-error \
+            -u admin:change-this-admin-password \
+            -F document=@/tmp/ci-document-bt.pdf \
+            "http://localhost:8088/api/v1/signatures/pdf/extend?level=LT" \
+            -o /tmp/ci-document-lt.pdf; then
+            echo "PAdES B-LT extension smoke test failed"
+            docker compose logs --no-color --tail=500 postgres tte-signing || true
+            exit 1
+          fi
+
+          test "$(head -c 4 /tmp/ci-document-lt.pdf)" = "%PDF"
+
+          if ! curl --fail --show-error \
+            -u admin:change-this-admin-password \
+            -F document=@/tmp/ci-document-lt.pdf \
+            http://localhost:8088/api/v1/signatures/pdf/validate \
+            -o /tmp/ci-validation-lt.xml; then
+            echo "PAdES B-LT validation smoke test failed"
+            docker compose logs --no-color --tail=500 postgres tte-signing || true
+            exit 1
+          fi
+
+          test -s /tmp/ci-validation-lt.xml
+
+          if ! curl --fail --show-error \
+            -u admin:change-this-admin-password \
+            -F document=@/tmp/ci-document-lt.pdf \
+            "http://localhost:8088/api/v1/signatures/pdf/extend?level=LTA" \
+            -o /tmp/ci-document-lta.pdf; then
+            echo "PAdES B-LTA extension smoke test failed"
+            docker compose logs --no-color --tail=500 postgres tte-signing || true
+            exit 1
+          fi
+
+          test "$(head -c 4 /tmp/ci-document-lta.pdf)" = "%PDF"
+
+          if ! curl --fail --show-error \
+            -u admin:change-this-admin-password \
+            -F document=@/tmp/ci-document-lta.pdf \
+            http://localhost:8088/api/v1/signatures/pdf/validate \
+            -o /tmp/ci-validation-lta.xml; then
+            echo "PAdES B-LTA validation smoke test failed"
+            docker compose logs --no-color --tail=500 postgres tte-signing || true
+            exit 1
+          fi
+
+          test -s /tmp/ci-validation-lta.xml
