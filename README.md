@@ -73,7 +73,11 @@ cp .env.example .env
 docker compose up --build
 ~~~
 
-Service: `http://localhost:8080`
+Default application port is `8088`. PostgreSQL remains internal to the Compose network on port `5432`.
+
+Service: `http://localhost:8088`
+
+Jika sebelumnya pernah menjalankan versi Compose yang memakai mount PostgreSQL lama dan masih mengalami error volume, jalankan `docker compose down -v` **hanya jika data development boleh dihapus**, lalu jalankan ulang. Compose terbaru memakai volume baru `postgres18-data` dengan layout PostgreSQL 18 yang benar.
 
 Development bootstrap akan membuat Root CA, Issuing CA, delegated OCSP responder, dan TSA certificate ketika storage masih kosong. **Mode ini tidak untuk production.**
 
@@ -91,7 +95,7 @@ curl -u admin:change-this-admin-password \
     "validityDays":365,
     "pkcs12Password":"a-strong-p12-password"
   }' \
-  http://localhost:8080/api/v1/certificates/issue \
+  http://localhost:8088/api/v1/certificates/issue \
   -o signer.p12 -D issue-headers.txt
 ~~~
 
@@ -112,7 +116,7 @@ curl -u admin:change-this-admin-password \
   -F password=a-strong-p12-password \
   -F level=T \
   -F reason="Approval" \
-  http://localhost:8080/api/v1/signatures/pdf/sign \
+  http://localhost:8088/api/v1/signatures/pdf/sign \
   -o document-bt.pdf
 ~~~
 
@@ -123,7 +127,7 @@ Level `B` juga didukung. Untuk signature yang ingin dibuat LTV, gunakan `T`.
 ~~~bash
 curl -u admin:change-this-admin-password \
   -F document=@document-bt.pdf \
-  "http://localhost:8080/api/v1/signatures/pdf/extend?level=LT" \
+  "http://localhost:8088/api/v1/signatures/pdf/extend?level=LT" \
   -o document-lt.pdf
 ~~~
 
@@ -132,7 +136,7 @@ curl -u admin:change-this-admin-password \
 ~~~bash
 curl -u admin:change-this-admin-password \
   -F document=@document-lt.pdf \
-  "http://localhost:8080/api/v1/signatures/pdf/extend?level=LTA" \
+  "http://localhost:8088/api/v1/signatures/pdf/extend?level=LTA" \
   -o document-lta.pdf
 ~~~
 
@@ -141,7 +145,7 @@ curl -u admin:change-this-admin-password \
 ~~~bash
 curl -u admin:change-this-admin-password \
   -F document=@document-lta.pdf \
-  http://localhost:8080/api/v1/signatures/pdf/validate
+  http://localhost:8088/api/v1/signatures/pdf/validate
 ~~~
 
 Output berupa DSS Simple Report XML.
