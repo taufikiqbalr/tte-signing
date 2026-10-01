@@ -11,6 +11,7 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.cert.jcajce.JcaCertStore;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cms.SignerInfoGenerator;
 import org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder;
 import org.bouncycastle.operator.ContentSigner;
@@ -76,10 +77,7 @@ public class TsaService {
                     properties.getTsaAccuracySeconds());
             tokenGenerator.setOrdering(false);
             tokenGenerator.setTSA(new GeneralName(
-                    new X500Name(
-                            tsa.certificate()
-                                    .getSubjectX500Principal()
-                                    .getName())));
+                    new JcaX509CertificateHolder(tsa.certificate()).getSubject()));
 
             Set<ASN1ObjectIdentifier> acceptedAlgorithms = Set.of(
                     TSPAlgorithms.SHA256,
