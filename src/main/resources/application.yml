@@ -1,0 +1,47 @@
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: tte-signing
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tte}
+    username: ${DB_USER:tte}
+    password: ${DB_PASSWORD:tte}
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 60MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  security:
+    username: ${APP_ADMIN_USERNAME:admin}
+    password: ${APP_ADMIN_PASSWORD:change-this-admin-password}
+
+pki:
+  base-dir: ${PKI_BASE_DIR:./data/pki}
+  public-base-url: ${PKI_PUBLIC_BASE_URL:http://localhost:8080}
+  bootstrap-enabled: ${PKI_BOOTSTRAP_ENABLED:true}
+  store-password: ${PKI_STORE_PASSWORD:change-this-pki-store-password}
+  root-subject: ${PKI_ROOT_SUBJECT:CN=TTE Development Root CA,O=TTE Private PKI,C=ID}
+  issuing-subject: ${PKI_ISSUING_SUBJECT:CN=TTE Development Issuing CA,O=TTE Private PKI,C=ID}
+  ocsp-subject: ${PKI_OCSP_SUBJECT:CN=TTE Development OCSP Responder,O=TTE Private PKI,C=ID}
+  tsa-subject: ${PKI_TSA_SUBJECT:CN=TTE Development TSA,O=TTE Private PKI,C=ID}
+  root-validity-days: ${PKI_ROOT_VALIDITY_DAYS:3650}
+  issuer-validity-days: ${PKI_ISSUER_VALIDITY_DAYS:1825}
+  service-validity-days: ${PKI_SERVICE_VALIDITY_DAYS:825}
+  end-entity-validity-days: ${PKI_END_ENTITY_VALIDITY_DAYS:365}
+  max-end-entity-validity-days: ${PKI_MAX_END_ENTITY_VALIDITY_DAYS:825}
+  ocsp-validity-minutes: ${PKI_OCSP_VALIDITY_MINUTES:30}
+  crl-validity-hours: ${PKI_CRL_VALIDITY_HOURS:24}
+  tsa-policy-oid: ${TSA_POLICY_OID:1.3.6.1.4.1.55555.1.1}
+  tsa-accuracy-seconds: ${TSA_ACCURACY_SECONDS:1}
