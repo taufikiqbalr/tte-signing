@@ -215,12 +215,20 @@ public class CertificateAuthorityService {
             KeyPair keyPair = generateKeyPair();
             X500Name subject = buildSubject(subjectData);
             Instant now = Instant.now().minus(5, ChronoUnit.MINUTES);
+            Instant requestedNotAfter =
+                    now.plus(validityDays, ChronoUnit.DAYS);
+            Instant issuerNotAfter =
+                    issuer.certificate().getNotAfter().toInstant();
+            if (requestedNotAfter.isAfter(issuerNotAfter)) {
+                throw new IllegalArgumentException(
+                        "Requested certificate validity exceeds Issuing CA validity");
+            }
 
             X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
                     new JcaX509CertificateHolder(issuer.certificate()).getSubject(),
                     randomSerial(),
                     Date.from(now),
-                    Date.from(now.plus(validityDays, ChronoUnit.DAYS)),
+                    Date.from(requestedNotAfter),
                     subject,
                     keyPair.getPublic());
 
