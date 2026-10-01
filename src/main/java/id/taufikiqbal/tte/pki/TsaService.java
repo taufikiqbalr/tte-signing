@@ -25,6 +25,8 @@ import org.bouncycastle.tsp.TimeStampRequest;
 import org.bouncycastle.tsp.TimeStampResponse;
 import org.bouncycastle.tsp.TimeStampResponseGenerator;
 import org.bouncycastle.tsp.TimeStampTokenGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import id.taufikiqbal.tte.config.PkiProperties;
@@ -33,6 +35,9 @@ import id.taufikiqbal.tte.pki.PkiMaterialStore.Kind;
 
 @Service
 public class TsaService {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(TsaService.class);
 
     private final PkiProperties properties;
     private final PkiMaterialStore materialStore;
@@ -48,6 +53,9 @@ public class TsaService {
     }
 
     public byte[] timestamp(byte[] requestBytes) {
+        log.info(
+                "RFC3161 timestamp request received bytes={}",
+                requestBytes == null ? 0 : requestBytes.length);
         try {
             TimeStampRequest request = new TimeStampRequest(requestBytes);
             KeyMaterial tsa = materialStore.load(Kind.TSA);
@@ -101,11 +109,27 @@ public class TsaService {
                         Date.from(now),
                         "granted");
             } catch (TSPException rejected) {
+                log.warn(
+                        "RFC3161 timestamp request rejected policyOid={} reason={}",
+                        properties.getTsaPolicyOid(),
+                        rejected.getMessage(),
+                        rejected);
                 response = responseGenerator.generateRejectedResponse(rejected);
             }
 
-            return response.getEncoded();
+            byte[] encoded = response.getEncoded();
+            log.info(
+                    "RFC3161 timestamp response generated status={} bytes={}",
+                    response.getStatus(),
+                    encoded.length);
+            return encoded;
         } catch (Exception e) {
+            log.error(
+                    "RFC3161 timestamp processing failed bytes={} exceptionType={} message={}",
+                    requestBytes == null ? 0 : requestBytes.length,
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    e);
             throw new IllegalArgumentException(
                     "Invalid or unsupported RFC 3161 timestamp request", e);
         }
