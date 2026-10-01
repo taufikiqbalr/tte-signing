@@ -52,20 +52,31 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                     request.getRequestURI(),
                     response.getStatus(),
                     Duration.between(started, Instant.now()).toMillis());
-        } catch (Throwable failure) {
-            log.error(
-                    "HTTP request failed method={} uri={} status={} durationMs={} exceptionType={} message={}",
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    response.getStatus(),
-                    Duration.between(started, Instant.now()).toMillis(),
-                    failure.getClass().getName(),
-                    failure.getMessage(),
-                    failure);
+        } catch (IOException | ServletException failure) {
+            logFailure(request, response, started, failure);
+            throw failure;
+        } catch (RuntimeException | Error failure) {
+            logFailure(request, response, started, failure);
             throw failure;
         } finally {
             MDC.remove(REQUEST_ID);
         }
+    }
+
+    private static void logFailure(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Instant started,
+            Throwable failure) {
+        log.error(
+                "HTTP request failed method={} uri={} status={} durationMs={} exceptionType={} message={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                response.getStatus(),
+                Duration.between(started, Instant.now()).toMillis(),
+                failure.getClass().getName(),
+                failure.getMessage(),
+                failure);
     }
 
     private static String normalizeRequestId(String supplied) {
