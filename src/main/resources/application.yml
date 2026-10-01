@@ -11,6 +11,9 @@ spring:
     password: ${DB_PASSWORD:tte}
   flyway:
     enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    clean-disabled: true
   servlet:
     multipart:
       max-file-size: 50MB
@@ -50,5 +53,6 @@ pki:
 logging:
   level:
     id.taufikiqbal.tte: INFO
+    org.flywaydb: INFO
   pattern:
     level: "%5p [requestId:%X{requestId}]"
