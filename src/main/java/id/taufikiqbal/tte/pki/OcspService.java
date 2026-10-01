@@ -84,18 +84,21 @@ public class OcspService {
                 if (!requestedId.matchesIssuer(issuerHolder, calculators)) {
                     status = new UnknownStatus();
                 } else {
-                    status = repository.findBySerial(requestedId.getSerialNumber())
-                            .map(record -> {
-                                if ("REVOKED".equals(record.status())) {
-                                    return (CertificateStatus) new RevokedStatus(
-                                            Date.from(record.revocationTime()),
-                                            record.revocationReason() == null
-                                                    ? 0
-                                                    : record.revocationReason());
-                                }
-                                return CertificateStatus.GOOD;
-                            })
-                            .orElseGet(UnknownStatus::new);
+                    var record = repository.findBySerial(
+                            requestedId.getSerialNumber());
+                    if (record.isEmpty()) {
+                        status = new UnknownStatus();
+                    } else if ("REVOKED".equals(record.get().status())) {
+                        status = new RevokedStatus(
+                                Date.from(record.get().revocationTime()),
+                                record.get().revocationReason() == null
+                                        ? 0
+                                        : record.get().revocationReason());
+                    } else {
+                        // Bouncy Castle represents the RFC 6960 GOOD status
+                        // as CertificateStatus.GOOD, whose value is null.
+                        status = CertificateStatus.GOOD;
+                    }
                 }
 
                 responseBuilder.addResponse(
