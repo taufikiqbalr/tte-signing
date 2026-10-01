@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class PkiProperties {
 
     private Path baseDir = Path.of("./data/pki");
-    private String publicBaseUrl = "http://localhost:8080";
+    private String publicBaseUrl = "http://localhost:8088";
     private boolean bootstrapEnabled = true;
     private String storePassword = "change-this-pki-store-password";
     private String rootSubject = "CN=TTE Development Root CA,O=TTE Private PKI,C=ID";
