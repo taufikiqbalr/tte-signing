@@ -36,9 +36,22 @@ public class CrlService {
         this.repository = repository;
     }
 
+    public byte[] currentRootCaCrl() {
+        return generateCrl(
+                materialStore.load(Kind.ROOT),
+                java.util.List.of());
+    }
+
     public byte[] currentIssuingCaCrl() {
+        return generateCrl(
+                materialStore.load(Kind.ISSUING),
+                repository.findRevoked());
+    }
+
+    private byte[] generateCrl(
+            KeyMaterial issuer,
+            java.util.List<CertificateRepository.CertificateRecord> revokedCertificates) {
         try {
-            KeyMaterial issuer = materialStore.load(Kind.ISSUING);
             Instant now = Instant.now();
 
             X509v2CRLBuilder builder = new X509v2CRLBuilder(
@@ -49,7 +62,7 @@ public class CrlService {
                             properties.getCrlValidityHours(), ChronoUnit.HOURS)));
 
             for (CertificateRepository.CertificateRecord revoked
-                    : repository.findRevoked()) {
+                    : revokedCertificates) {
                 builder.addCRLEntry(
                         revoked.serialNumber(),
                         Date.from(revoked.revocationTime()),
