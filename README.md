@@ -223,3 +223,50 @@ Lihat [docs/OPERATIONS.md](docs/OPERATIONS.md).
 ## Security note
 
 Jangan gunakan credentials contoh. Jangan menjalankan dev bootstrap yang membuat Root CA online pada production. Source code ini memberi building blocks protocol/crypto dan bukan pengganti PKI governance, HSM, audited operating procedures, atau legal certification.
+
+
+## Troubleshooting dan Docker logs
+
+Setiap HTTP request diberi correlation ID. Response menyertakan header `X-Request-ID`, dan log aplikasi memasukkan nilai yang sama sebagai `requestId`. Gunakan ID tersebut untuk menghubungkan error client dengan stack trace di container.
+
+Lihat log aplikasi secara live:
+
+~~~bash
+docker compose logs -f --tail=300 tte-signing
+~~~
+
+Cari error penting:
+
+~~~bash
+docker compose logs --since=10m tte-signing \
+  | grep -i -E "ERROR|WARN|PAdES|PKCS12|RFC3161|OCSP|requestId"
+~~~
+
+Logging yang tersedia mencakup:
+
+- HTTP request start/completion/failure dan duration;
+- PAdES signing B/B-T;
+- LTV augmentation LT/LTA;
+- signed-PDF validation;
+- PKCS#12 signer/key-store loading;
+- certificate issuance;
+- RFC 3161 TSA request/rejection/failure;
+- OCSP status GOOD/REVOKED/UNKNOWN dan responder failure.
+
+Password, private-key material, dan isi dokumen tidak ditulis ke log.
+
+Jika client menerima error JSON, simpan nilai `requestId`, kemudian cari:
+
+~~~bash
+docker compose logs tte-signing | grep "<requestId>"
+~~~
+
+Untuk memastikan image menggunakan source terbaru setelah perubahan dependency:
+
+~~~bash
+git pull
+docker compose down
+docker compose build --no-cache tte-signing
+docker compose up -d
+docker compose logs -f --tail=200 tte-signing
+~~~
