@@ -3,6 +3,8 @@ package id.taufikiqbal.tte.signing;
 import java.io.ByteArrayOutputStream;
 import java.security.KeyStore.PasswordProtection;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
@@ -33,6 +35,9 @@ import id.taufikiqbal.tte.pki.PkiMaterialStore.Kind;
 @Service
 public class PadesSigningService {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(PadesSigningService.class);
+
     private final PkiProperties properties;
     private final PkiMaterialStore materialStore;
 
@@ -57,6 +62,11 @@ public class PadesSigningService {
                     "Initial signing level must be B or T");
         };
 
+        log.info(
+                "PAdES signing started level={} pdfBytes={} pkcs12Bytes={}",
+                level, pdf == null ? 0 : pdf.length,
+                pkcs12 == null ? 0 : pkcs12.length);
+
         try (Pkcs12SignatureToken token = new Pkcs12SignatureToken(
                 pkcs12, new PasswordProtection(password))) {
 
@@ -64,6 +74,10 @@ public class PadesSigningService {
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException(
                             "PKCS#12 contains no signing key"));
+
+            log.info(
+                    "PKCS#12 loaded successfully certificateChainSize={}",
+                    key.getCertificateChain().size());
 
             PAdESSignatureParameters parameters =
                     new PAdESSignatureParameters();
@@ -84,10 +98,25 @@ public class PadesSigningService {
 
             DSSDocument signed =
                     service.signDocument(input, parameters, signatureValue);
-            return toBytes(signed);
+            byte[] output = toBytes(signed);
+            log.info(
+                    "PAdES signing completed level={} outputBytes={}",
+                    level, output.length);
+            return output;
         } catch (IllegalArgumentException e) {
+            log.warn(
+                    "PAdES signing rejected level={} reason={}",
+                    level, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
+            log.error(
+                    "PAdES signing failed level={} pdfBytes={} pkcs12Bytes={} exceptionType={} message={}",
+                    level,
+                    pdf == null ? 0 : pdf.length,
+                    pkcs12 == null ? 0 : pkcs12.length,
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    e);
             throw new IllegalStateException("Unable to sign PDF", e);
         }
     }
@@ -101,6 +130,10 @@ public class PadesSigningService {
                     "Extension level must be LT or LTA");
         };
 
+        log.info(
+                "PAdES LTV extension started targetLevel={} pdfBytes={}",
+                level, signedPdf == null ? 0 : signedPdf.length);
+
         try {
             PAdESSignatureParameters parameters =
                     new PAdESSignatureParameters();
@@ -109,22 +142,46 @@ public class PadesSigningService {
 
             DSSDocument extended = createPadesService()
                     .extendDocument(pdfDocument(signedPdf), parameters);
-            return toBytes(extended);
+            byte[] output = toBytes(extended);
+            log.info(
+                    "PAdES LTV extension completed targetLevel={} outputBytes={}",
+                    level, output.length);
+            return output;
         } catch (Exception e) {
+            log.error(
+                    "PAdES LTV extension failed targetLevel={} pdfBytes={} exceptionType={} message={}",
+                    level,
+                    signedPdf == null ? 0 : signedPdf.length,
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    e);
             throw new IllegalStateException(
                     "Unable to extend PDF signature to " + requestedLevel, e);
         }
     }
 
     public String validate(byte[] signedPdf) {
+        log.info(
+                "PAdES validation started pdfBytes={}",
+                signedPdf == null ? 0 : signedPdf.length);
         try {
             SignedDocumentValidator validator =
                     SignedDocumentValidator.fromDocument(
                             pdfDocument(signedPdf));
             validator.setCertificateVerifier(createCertificateVerifier());
             Reports reports = validator.validateDocument();
-            return reports.getXmlSimpleReport();
+            String report = reports.getXmlSimpleReport();
+            log.info(
+                    "PAdES validation completed reportChars={}",
+                    report == null ? 0 : report.length());
+            return report;
         } catch (Exception e) {
+            log.error(
+                    "PAdES validation failed pdfBytes={} exceptionType={} message={}",
+                    signedPdf == null ? 0 : signedPdf.length,
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    e);
             throw new IllegalStateException(
                     "Unable to validate signed PDF", e);
         }
@@ -135,8 +192,9 @@ public class PadesSigningService {
                 new PAdESService(createCertificateVerifier());
         service.setPdfObjFactory(new PdfBoxNativeObjectFactory());
 
-        OnlineTSPSource tspSource = new OnlineTSPSource(
-                properties.getPublicBaseUrl() + "/tsa");
+        String tsaUrl = properties.getPublicBaseUrl() + "/tsa";
+        log.debug("Configuring DSS TSA source url={}", tsaUrl);
+        OnlineTSPSource tspSource = new OnlineTSPSource(tsaUrl);
         tspSource.setPolicyOid(properties.getTsaPolicyOid());
         tspSource.setNonceSource(new SecureRandomNonceSource());
         service.setTspSource(tspSource);
