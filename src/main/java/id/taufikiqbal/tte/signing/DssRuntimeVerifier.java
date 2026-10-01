@@ -41,8 +41,13 @@ public class DssRuntimeVerifier implements ApplicationRunner {
                         "DSS default validation policy provider is unavailable");
             }
 
+            Class.forName(
+                    "eu.europa.esig.dss.crl.CRLUtils",
+                    true,
+                    DssRuntimeVerifier.class.getClassLoader());
+
             log.info(
-                    "DSS runtime providers verified utilityProvider=true cmsGenerator={} validationPolicy={}",
+                    "DSS runtime providers verified utilityProvider=true cmsGenerator={} validationPolicy={} crlParser=true",
                     cmsGenerator.getClass().getName(),
                     validationPolicy.getClass().getName());
         } catch (Throwable failure) {
@@ -54,7 +59,7 @@ public class DssRuntimeVerifier implements ApplicationRunner {
             throw new IllegalStateException(
                     "DSS runtime dependencies are incomplete. "
                     + "Verify dss-utils-apache-commons, dss-cms-object, "
-                    + "and dss-policy-jaxb.",
+                    + "dss-policy-jaxb, and dss-crl-parser-x509crl.",
                     failure);
         }
     }
