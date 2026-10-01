@@ -72,3 +72,30 @@ jobs:
           fi
 
           openssl pkcs12             -in /tmp/ci-signer.p12             -passin pass:ci-p12-password-12345             -info -noout
+
+          if ! curl --fail --show-error \
+            -u admin:change-this-admin-password \
+            -F document=@test-documents/test-document.pdf \
+            -F pkcs12=@/tmp/ci-signer.p12 \
+            -F password=ci-p12-password-12345 \
+            -F level=T \
+            http://localhost:8088/api/v1/signatures/pdf/sign \
+            -o /tmp/ci-document-bt.pdf; then
+            echo "PAdES B-T signing smoke test failed"
+            docker compose logs --no-color --tail=400 postgres tte-signing || true
+            exit 1
+          fi
+
+          test "$(head -c 4 /tmp/ci-document-bt.pdf)" = "%PDF"
+
+          if ! curl --fail --show-error \
+            -u admin:change-this-admin-password \
+            -F document=@/tmp/ci-document-bt.pdf \
+            http://localhost:8088/api/v1/signatures/pdf/validate \
+            -o /tmp/ci-validation.xml; then
+            echo "PAdES validation smoke test failed"
+            docker compose logs --no-color --tail=400 postgres tte-signing || true
+            exit 1
+          fi
+
+          test -s /tmp/ci-validation.xml
