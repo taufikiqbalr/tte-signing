@@ -23,13 +23,13 @@ import eu.europa.esig.dss.service.crl.OnlineCRLSource;
 import eu.europa.esig.dss.service.ocsp.OnlineOCSPSource;
 import eu.europa.esig.dss.service.tsp.OnlineTSPSource;
 import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
-import eu.europa.esig.dss.spi.x509.CommonTrustedCertificateSource;
 import eu.europa.esig.dss.token.DSSPrivateKeyEntry;
 import eu.europa.esig.dss.token.Pkcs12SignatureToken;
 import eu.europa.esig.dss.validation.SignedDocumentValidator;
 import eu.europa.esig.dss.validation.reports.Reports;
 import id.taufikiqbal.tte.config.PkiProperties;
 import id.taufikiqbal.tte.pki.PkiMaterialStore;
+import id.taufikiqbal.tte.pki.PrivatePkiTrustedCertificateSource;
 import id.taufikiqbal.tte.pki.PkiMaterialStore.Kind;
 
 @Service
@@ -204,8 +204,10 @@ public class PadesSigningService {
     }
 
     private CommonCertificateVerifier createCertificateVerifier() {
-        CommonTrustedCertificateSource trusted =
-                new CommonTrustedCertificateSource();
+        PrivatePkiTrustedCertificateSource trusted =
+                new PrivatePkiTrustedCertificateSource(
+                        properties.getPublicBaseUrl()
+                                + "/pki/crl/root-ca.crl");
         trusted.addCertificate(new CertificateToken(
                 materialStore.load(Kind.ROOT).certificate()));
 
