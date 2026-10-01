@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import eu.europa.esig.dss.cms.CMSGenerator;
 import eu.europa.esig.dss.utils.Utils;
+import eu.europa.esig.dss.validation.policy.ValidationPolicyLoader;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
@@ -32,9 +33,18 @@ public class DssRuntimeVerifier implements ApplicationRunner {
                         "DSS CMSGenerator provider is unavailable");
             }
 
+            Object validationPolicy = ValidationPolicyLoader
+                    .fromDefaultValidationPolicy()
+                    .create();
+            if (validationPolicy == null) {
+                throw new IllegalStateException(
+                        "DSS default validation policy provider is unavailable");
+            }
+
             log.info(
-                    "DSS runtime providers verified utilityProvider=true cmsGenerator={}",
-                    cmsGenerator.getClass().getName());
+                    "DSS runtime providers verified utilityProvider=true cmsGenerator={} validationPolicy={}",
+                    cmsGenerator.getClass().getName(),
+                    validationPolicy.getClass().getName());
         } catch (Throwable failure) {
             log.error(
                     "DSS runtime provider verification failed exceptionType={} message={}",
@@ -43,7 +53,8 @@ public class DssRuntimeVerifier implements ApplicationRunner {
                     failure);
             throw new IllegalStateException(
                     "DSS runtime dependencies are incomplete. "
-                    + "Verify dss-utils-apache-commons and dss-cms-object.",
+                    + "Verify dss-utils-apache-commons, dss-cms-object, "
+                    + "and dss-policy-jaxb.",
                     failure);
         }
     }
