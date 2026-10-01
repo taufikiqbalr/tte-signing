@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -114,7 +115,7 @@ class ProtocolServiceTest {
                         "GOOD",
                         null,
                         null);
-        when(repository.findBySerial(signer.getSerialNumber()))
+        when(repository.findBySerial(any(BigInteger.class)))
                 .thenReturn(Optional.of(active));
 
         verifyOcsp(repository, store, properties, issuer, ocspCert, signer);
