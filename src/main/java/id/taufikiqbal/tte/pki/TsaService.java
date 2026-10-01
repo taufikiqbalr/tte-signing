@@ -20,6 +20,7 @@ import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.bouncycastle.tsp.TSPAlgorithms;
+import org.bouncycastle.tsp.TSPException;
 import org.bouncycastle.tsp.TimeStampRequest;
 import org.bouncycastle.tsp.TimeStampResponse;
 import org.bouncycastle.tsp.TimeStampResponseGenerator;
@@ -92,12 +93,16 @@ public class TsaService {
                             acceptedPolicies);
 
             Instant now = Instant.now();
-            TimeStampResponse response =
-                    responseGenerator.generateGrantedResponse(
-                            request,
-                            repository.nextTsaSerial(),
-                            Date.from(now),
-                            "granted");
+            TimeStampResponse response;
+            try {
+                response = responseGenerator.generateGrantedResponse(
+                        request,
+                        repository.nextTsaSerial(),
+                        Date.from(now),
+                        "granted");
+            } catch (TSPException rejected) {
+                response = responseGenerator.generateRejectedResponse(rejected);
+            }
 
             return response.getEncoded();
         } catch (Exception e) {
