@@ -27,3 +27,48 @@ jobs:
         run: |
           cp .env.example .env
           docker compose config --quiet
+
+      - name: Docker runtime smoke test
+        run: |
+          set -euo pipefail
+
+          cleanup() {
+            docker compose down -v >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker compose up -d --build
+
+          healthy=0
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://localhost:8088/actuator/health >/tmp/health.json; then
+              healthy=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$healthy" -ne 1 ]; then
+            echo "Application did not become healthy"
+            docker compose logs --no-color --tail=300 postgres tte-signing || true
+            exit 1
+          fi
+
+          docker compose exec -T postgres             psql -U tte -d tte -tAc             "SELECT to_regclass('public.issued_certificate') IS NOT NULL;"             | grep -q t
+
+          docker compose exec -T postgres             psql -U tte -d tte -tAc             "SELECT to_regclass('public.tsa_serial_seq') IS NOT NULL;"             | grep -q t
+
+          if ! curl --fail --show-error             -u admin:change-this-admin-password             -H "Content-Type: application/json"             -d '{
+              "commonName":"CI Test Signer",
+              "organization":"TTE Signing CI",
+              "organizationalUnit":"Automated Test",
+              "country":"ID",
+              "email":"ci@example.test",
+              "validityDays":30,
+              "pkcs12Password":"ci-p12-password-12345"
+            }'             http://localhost:8088/api/v1/certificates/issue             -o /tmp/ci-signer.p12; then
+            docker compose logs --no-color --tail=300 postgres tte-signing || true
+            exit 1
+          fi
+
+          openssl pkcs12             -in /tmp/ci-signer.p12             -passin pass:ci-p12-password-12345             -info -noout
