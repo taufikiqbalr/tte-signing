@@ -31,6 +31,7 @@ import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
@@ -115,7 +116,7 @@ public class CertificateAuthorityService {
             KeyMaterial root) {
         try {
             X500Name subject = new X500Name(properties.getIssuingSubject());
-            X500Name issuer = new X500Name(root.certificate().getSubjectX500Principal().getName());
+            X500Name issuer = new JcaX509CertificateHolder(root.certificate()).getSubject();
             Instant now = Instant.now().minus(5, ChronoUnit.MINUTES);
 
             X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
@@ -216,7 +217,7 @@ public class CertificateAuthorityService {
             Instant now = Instant.now().minus(5, ChronoUnit.MINUTES);
 
             X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
-                    new X500Name(issuer.certificate().getSubjectX500Principal().getName()),
+                    new JcaX509CertificateHolder(issuer.certificate()).getSubject(),
                     randomSerial(),
                     Date.from(now),
                     Date.from(now.plus(validityDays, ChronoUnit.DAYS)),
@@ -270,7 +271,7 @@ public class CertificateAuthorityService {
 
         Instant now = Instant.now().minus(5, ChronoUnit.MINUTES);
         X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
-                new X500Name(issuer.certificate().getSubjectX500Principal().getName()),
+                new JcaX509CertificateHolder(issuer.certificate()).getSubject(),
                 randomSerial(),
                 Date.from(now),
                 Date.from(now.plus(properties.getServiceValidityDays(), ChronoUnit.DAYS)),
