@@ -142,6 +142,9 @@ public class CertificateAuthorityService {
                     extensions.createAuthorityKeyIdentifier(root.certificate()));
 
             addCaIssuersAia(builder, properties.getPublicBaseUrl() + "/pki/root-ca.cer");
+            addCrlDistributionPoint(
+                    builder,
+                    properties.getPublicBaseUrl() + "/pki/crl/root-ca.crl");
 
             X509Certificate certificate = signAndConvert(builder, root.privateKey());
             certificate.verify(root.certificate().getPublicKey());
@@ -337,14 +340,25 @@ public class CertificateAuthorityService {
         builder.addExtension(Extension.authorityInfoAccess, false,
                 new AuthorityInformationAccess(new AccessDescription[] {ocsp, caIssuers}));
 
+        addCrlDistributionPoint(
+                builder,
+                properties.getPublicBaseUrl() + "/pki/crl/issuing-ca.crl");
+    }
+
+    private void addCrlDistributionPoint(
+            X509v3CertificateBuilder builder,
+            String url) throws Exception {
+
         GeneralName crlUrl = new GeneralName(
                 GeneralName.uniformResourceIdentifier,
-                properties.getPublicBaseUrl() + "/pki/crl/issuing-ca.crl");
+                url);
         DistributionPointName distributionPointName = new DistributionPointName(
                 new GeneralNames(crlUrl));
         DistributionPoint distributionPoint = new DistributionPoint(
                 distributionPointName, null, null);
-        builder.addExtension(Extension.cRLDistributionPoints, false,
+        builder.addExtension(
+                Extension.cRLDistributionPoints,
+                false,
                 new CRLDistPoint(
                         new DistributionPoint[] {distributionPoint}));
     }
